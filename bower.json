@@ -1,0 +1,12 @@
+{
+  "name": "photon-core",
+  "description": "",
+  "main": "dist/photon-core.js",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
