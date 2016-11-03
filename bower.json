@@ -1,5 +1,6 @@
 {
   "name": "photon-core",
+  "version": "0.1.11",
   "description": "",
   "main": "dist/photon-core.js",
   "ignore": [
