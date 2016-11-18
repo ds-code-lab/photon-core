@@ -252,7 +252,11 @@ return /******/ (function(modules) { // webpackBootstrap
 					value: true
 				});
 				exports.string = exports.number = exports.boolean = exports.array = undefined;
-				exports.create = create;
+				exports.
+	
+				// returns a factory function to generates property definitions
+				// based on the given property definition (def) that is used as a template
+				create = create;
 	
 				var _assign = __webpack_require__(2);
 	
@@ -266,6 +270,16 @@ return /******/ (function(modules) { // webpackBootstrap
 					return obj && obj.__esModule ? obj : { default: obj };
 				}
 	
+				function _toConsumableArray(arr) {
+					if (Array.isArray(arr)) {
+						for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) {
+							arr2[i] = arr[i];
+						}return arr2;
+					} else {
+						return Array.from(arr);
+					}
+				}
+	
 				var alwaysUndefinedIfNotANumberOrNumber = function alwaysUndefinedIfNotANumberOrNumber(val) {
 					return isNaN(val) ? undefined : Number(val);
 				};
@@ -273,14 +287,16 @@ return /******/ (function(modules) { // webpackBootstrap
 					return (0, _empty2.default)(val) ? undefined : String(val);
 				};
 	
-				function create(def) {
+				function create(template) {
+	
+					//question: where this get called will more than on argument?
 					return function () {
 						for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
 							args[_key] = arguments[_key];
 						}
 	
-						args.unshift({}, def);
-						return _assign2.default.apply(undefined, args);
+						args.unshift({}, template);
+						return _assign2.default.apply(undefined, _toConsumableArray(args));
 					};
 				}
 	
@@ -291,7 +307,9 @@ return /******/ (function(modules) { // webpackBootstrap
 					default: function _default() {
 						return [];
 					},
-					deserialize: JSON.parse,
+					deserialize: function deserialize(val) {
+						return val === undefined ? undefined : JSON.parse(String(val));
+					},
 					serialize: JSON.stringify
 				});
 	
@@ -367,6 +385,7 @@ return /******/ (function(modules) { // webpackBootstrap
 					value: true
 				});
 				exports.default = keys;
+				// returns and array of property name strings and symbols on the given object
 				function keys() {
 					var obj = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 	
@@ -2057,6 +2076,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 				var _debounce2 = _interopRequireDefault(_debounce);
 	
+				var _empty = __webpack_require__(4);
+	
+				var _empty2 = _interopRequireDefault(_empty);
+	
 				var _getAllKeys = __webpack_require__(3);
 	
 				var _getAllKeys2 = _interopRequireDefault(_getAllKeys);
@@ -2119,25 +2142,29 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 				var htmlElementPrototype = HTMLElement ? HTMLElement.prototype : {};
 	
-				function syncPropsToAttrs(elem) {
-					var props = elem.constructor.props;
-					Object.keys(props).forEach(function (propName) {
-						var prop = props[propName];
-						(0, _syncPropToAttr2.default)(elem, prop, propName, true);
-					});
-				}
+				// function syncPropsToAttrs (elem) {
+				//   //todo: these are just the original propConfigs
+				//   const props = elem.constructor.props;
+				//   Object.keys(props).forEach((propName) => {
+				//     const prop = props[propName];
+				//     syncPropToAttr(elem, prop, propName, true);
+				//   });
+				// }
 	
 				// Ensures that definitions passed as part of the constructor are functions
 				// that return property definitions used on the element.
 				function ensurePropertyFunctions(Ctor) {
 					var props = Ctor.props;
 	
-					return (0, _getAllKeys2.default)(props).reduce(function (descriptors, descriptorName) {
-						descriptors[descriptorName] = props[descriptorName];
-						if (typeof descriptors[descriptorName] !== 'function') {
-							descriptors[descriptorName] = (0, _propsInit2.default)(descriptors[descriptorName]);
+					return (0, _getAllKeys2.default)(props).reduce(function (result, propName) {
+						var propConfig = props[propName];
+						if (typeof propConfig !== 'function') {
+							result[propName] = (0, _propsInit2.default)(propConfig);
+						} else {
+							//already a function; just cast it
+							result[propName] = propConfig;
 						}
-						return descriptors;
+						return result;
 					}, {});
 				}
 	
@@ -2145,12 +2172,13 @@ return /******/ (function(modules) { // webpackBootstrap
 				// to create properties on the element.
 				function ensurePropertyDefinitions(Ctor) {
 					var props = ensurePropertyFunctions(Ctor);
-					return (0, _getAllKeys2.default)(props).reduce(function (descriptors, descriptorName) {
-						descriptors[descriptorName] = props[descriptorName](descriptorName);
-						return descriptors;
+					return (0, _getAllKeys2.default)(props).reduce(function (result, propName) {
+						result[propName] = props[propName](propName);
+						return result;
 					}, {});
 				}
 	
+				//returns a function that will create all the properties
 				function createInitProps(Ctor) {
 					var props = ensurePropertyDefinitions(Ctor);
 	
@@ -2202,8 +2230,9 @@ return /******/ (function(modules) { // webpackBootstrap
 					var readyCallbacks = elemData.readyCallbacks;
 					var constructor = elem.constructor;
 	
-					// Ensures that this can never be called twice.
+					console.log('Component constructor', elem);
 	
+					// Ensures that this can never be called twice.
 					if (elem[_symbols.created]) {
 						return;
 					}
@@ -2248,7 +2277,6 @@ return /******/ (function(modules) { // webpackBootstrap
 					observedAttributes: (0, _prop2.default)({
 						get: function get() {
 							var props = this.props;
-	
 							return Object.keys(props).map(function (key) {
 								var attribute = props[key].attribute;
 	
@@ -2261,6 +2289,20 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 					// Skate
 					props: (0, _prop2.default)({ value: {} })
+	
+					// // Skate
+					// // returns cached prop configs for the current class
+					// propConfigs: prop({
+					//   get () {
+					//     const { constructor } = this;
+					//     if (!constructor.hasOwnProperty('_propConfigs')) {
+					//       console.log('this.props', this.props);
+					//       constructor._propConfigs = this.props || {};
+					//     }
+					//     return constructor._propConfigs;
+					//   }
+					// })
+	
 				});
 	
 				// Skate
@@ -2342,6 +2384,9 @@ return /******/ (function(modules) { // webpackBootstrap
 				Component.renderer = function _renderer(elem) {
 					if (!elem.shadowRoot) {
 						elem.attachShadow({ mode: 'open' });
+	
+						console.log('elem.shadowRoot', _typeof(elem.shadowRoot), elem.shadowRoot);
+						console.log('innerHTML', elem.shadowRoot.innerHTML);
 					}
 					(0, _incrementalDom.patchInner)(elem.shadowRoot, function () {
 						var possibleFn = elem.renderCallback();
@@ -2361,14 +2406,14 @@ return /******/ (function(modules) { // webpackBootstrap
 					// Custom Elements v1
 					connectedCallback: (0, _prop2.default)({
 						value: function value() {
-							var constructor = this.constructor;
-	
-							syncPropsToAttrs(this);
+							//syncPropsToAttrs(this);
 	
 							this[_symbols.connected] = true;
 							this[_symbols.rendererDebounced]();
 	
 							// DEPRECATED static attached()
+							var constructor = this.constructor;
+	
 							if (typeof constructor.attached === 'function') {
 								constructor.attached(this);
 							}
@@ -2394,27 +2439,26 @@ return /******/ (function(modules) { // webpackBootstrap
 					// Custom Elements v1
 					attributeChangedCallback: (0, _prop2.default)({
 						value: function value(name, oldValue, newValue) {
-							var attributeChanged = this.constructor.attributeChanged;
-	
+							console.log('sk.attributeChangedCallback', name, 'from', oldValue, 'to', newValue);
 							var propertyName = (0, _data2.default)(this, 'attributeLinks')[name];
-	
 							if (propertyName) {
 								var propData = (0, _data2.default)(this, 'props')[propertyName];
+								var internalValue = propData.internalValue;
 	
-								// This ensures a property set doesn't cause the attribute changed
-								// handler to run again once we set this flag. This only ever has a
-								// chance to run when you set an attribute, it then sets a property and
-								// then that causes the attribute to be set again.
-								if (propData.syncingAttribute) {
-									propData.syncingAttribute = false;
-								} else {
+								var propOpts = this.constructor.props[propertyName];
+								var serializedValue = propOpts.serialize(internalValue);
+								var changed = !((0, _empty2.default)(serializedValue) && (0, _empty2.default)(newValue) || serializedValue === newValue);
+								if (changed) {
 									// Sync up the property.
-									var propOpts = this.constructor.props[propertyName];
-									propData.settingAttribute = true;
 									var newPropVal = newValue !== null && propOpts.deserialize ? propOpts.deserialize(newValue) : newValue;
 									this[propertyName] = newPropVal;
+								} else {
+									console.log('sk.attributeChangedCallback NOT changed');
 								}
 							}
+	
+							// Call deprecated attributeChanged
+							var attributeChanged = this.constructor.attributeChanged;
 	
 							if (attributeChanged) {
 								attributeChanged(this, { name: name, newValue: newValue, oldValue: oldValue });
@@ -2498,10 +2542,10 @@ return /******/ (function(modules) { // webpackBootstrap
 					value: true
 				});
 	
-				exports.default = function (element) {
+				exports.default = function (elem) {
 					var namespace = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
 	
-					var data = element.__SKATE_DATA || (element.__SKATE_DATA = {});
+					var data = elem.__SKATE_DATA || (elem.__SKATE_DATA = {});
 					return namespace && (data[namespace] || (data[namespace] = {})) || data; // eslint-disable-line no-mixed-operators
 				};
 	
@@ -2602,6 +2646,7 @@ return /******/ (function(modules) { // webpackBootstrap
 						cbArgs = args;
 						if (!scheduled) {
 							scheduled = true;
+							//todo: why we don't use requestAnimationFrame instead of setTimeout?
 							setTimeout(function () {
 								scheduled = false;
 								cbFunc.apply(undefined, _toConsumableArray(cbArgs));
@@ -2716,16 +2761,25 @@ return /******/ (function(modules) { // webpackBootstrap
 					value: true
 				});
 	
+				var _typeof = typeof Symbol === "function" && _typeof2(Symbol.iterator) === "symbol" ? function (obj) {
+					return typeof obj === 'undefined' ? 'undefined' : _typeof2(obj);
+				} : function (obj) {
+					return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj === 'undefined' ? 'undefined' : _typeof2(obj);
+				};
+	
 				exports.default = function (opts) {
 					opts = opts || {};
 	
+					// question: where in the code we create a descriptor to be the coerce function?
+					// it looks like this is never the case since if the descriptor is already a function
+					// props-init is not called.
 					if (typeof opts === 'function') {
 						opts = { coerce: opts };
 					}
 	
 					return function (name) {
 						return createNativePropertyDefinition(name, (0, _assign2.default)({
-							default: null,
+							default: null, //note: default is null and not undefined!
 							deserialize: function deserialize(value) {
 								return value;
 							},
@@ -2775,78 +2829,86 @@ return /******/ (function(modules) { // webpackBootstrap
 				}
 	
 				function createNativePropertyDefinition(name, opts) {
-					var prop = {
+					var nativePropDef = {
 						configurable: true,
-						enumerable: true
-					};
+						enumerable: true,
 	
-					prop.created = function created(elem) {
-						var propData = (0, _getPropData2.default)(elem, name);
-						var attributeName = opts.attribute === true ? (0, _dashCase2.default)(name) : opts.attribute;
-						var initialValue = elem[name];
+						//called just before actually creating the native property with Object.defineProperty
+						created: function created(elem) {
+							var propData = (0, _getPropData2.default)(elem, name);
+							var attributeName = opts.attribute === true ? (0, _dashCase2.default)(name) : String(opts.attribute);
+							var initialValue = elem[name];
 	
-						// Store property to attribute link information.
-						(0, _data2.default)(elem, 'attributeLinks')[attributeName] = name;
-						(0, _data2.default)(elem, 'propertyLinks')[name] = attributeName;
+							// Store property to attribute link information.
+							(0, _data2.default)(elem, 'attributeLinks')[attributeName] = name;
+							(0, _data2.default)(elem, 'propertyLinks')[name] = attributeName;
 	
-						// Set up initial value if it wasn't specified.
-						if ((0, _empty2.default)(initialValue)) {
-							if (attributeName && elem.hasAttribute(attributeName)) {
-								initialValue = opts.deserialize(elem.getAttribute(attributeName));
-							} else if ('initial' in opts) {
-								initialValue = (0, _getInitialValue2.default)(elem, name, opts);
-							} else if ('default' in opts) {
-								initialValue = (0, _getDefaultValue2.default)(elem, name, opts);
+							// Set up initial value if it wasn't specified.
+							if ((0, _empty2.default)(initialValue)) {
+								if (attributeName && elem.hasAttribute(attributeName)) {
+									initialValue = opts.deserialize(elem.getAttribute(attributeName));
+								} else if ('initial' in opts) {
+									initialValue = (0, _getInitialValue2.default)(elem, name, opts);
+								} else if ('default' in opts) {
+									initialValue = (0, _getDefaultValue2.default)(elem, name, opts);
+								}
+							}
+							if (opts.coerce) {
+								initialValue = opts.coerce(initialValue);
+							}
+							console.log('init prop', name, 'internalValue', typeof initialValue === 'undefined' ? 'undefined' : _typeof(initialValue), initialValue);
+							propData.internalValue = initialValue;
+						},
+	
+						get: function get() {
+							var propData = (0, _getPropData2.default)(this, name);
+							var internalValue = propData.internalValue;
+	
+							return typeof opts.get === 'function' ? opts.get(this, { name: name, internalValue: internalValue }) : internalValue;
+						},
+	
+						set: function set(newValue) {
+							var propData = (0, _getPropData2.default)(this, name);
+							propData.lastAssignedValue = newValue;
+							var oldValue = propData.oldValue;
+	
+							if ((0, _empty2.default)(oldValue)) {
+								oldValue = null; //todo: here empty is normalized to null and not to undefined?
+							}
+	
+							if ((0, _empty2.default)(newValue)) {
+								newValue = (0, _getDefaultValue2.default)(this, name, opts);
+							}
+	
+							// Note: coerce is optional
+							if (typeof opts.coerce === 'function') {
+								newValue = opts.coerce(newValue);
+							}
+	
+							var changeData = { name: name, newValue: newValue, oldValue: oldValue };
+	
+							if (typeof opts.set === 'function') {
+								opts.set(this, changeData);
+							}
+	
+							console.log('sk.set prop', name, 'to:', typeof newValue === 'undefined' ? 'undefined' : _typeof(newValue), newValue, 'was:', typeof oldValue === 'undefined' ? 'undefined' : _typeof(oldValue), oldValue);
+							// Queue a re-render.
+							this[_symbols.rendererDebounced](this);
+	
+							// Update prop data so we can use it next time.
+							propData.internalValue = propData.oldValue = newValue;
+	
+							// Link up the attribute.
+							if (this[_symbols.connected]) {
+								(0, _syncPropToAttr2.default)(this, opts, name, false);
 							}
 						}
-	
-						propData.internalValue = opts.coerce ? opts.coerce(initialValue) : initialValue;
 					};
-	
-					prop.get = function get() {
-						var propData = (0, _getPropData2.default)(this, name);
-						var internalValue = propData.internalValue;
-	
-						return typeof opts.get === 'function' ? opts.get(this, { name: name, internalValue: internalValue }) : internalValue;
-					};
-	
-					prop.set = function set(newValue) {
-						var propData = (0, _getPropData2.default)(this, name);
-						propData.lastAssignedValue = newValue;
-						var oldValue = propData.oldValue;
-	
-						if ((0, _empty2.default)(oldValue)) {
-							oldValue = null;
-						}
-	
-						if ((0, _empty2.default)(newValue)) {
-							newValue = (0, _getDefaultValue2.default)(this, name, opts);
-						}
-	
-						if (typeof opts.coerce === 'function') {
-							newValue = opts.coerce(newValue);
-						}
-	
-						var changeData = { name: name, newValue: newValue, oldValue: oldValue };
-	
-						if (typeof opts.set === 'function') {
-							opts.set(this, changeData);
-						}
-	
-						// Queue a re-render.
-						this[_symbols.rendererDebounced](this);
-	
-						// Update prop data so we can use it next time.
-						propData.internalValue = propData.oldValue = newValue;
-	
-						// Link up the attribute.
-						if (this[_symbols.connected]) {
-							(0, _syncPropToAttr2.default)(this, opts, name, false);
-						}
-					};
-	
-					return prop;
+					return nativePropDef;
 				}
+	
+				// given a property descriptor returns a function that will create
+				// the native property definition that is later passed to Object.createProperty as the third argument
 	
 				/***/
 			},
@@ -2898,9 +2960,10 @@ return /******/ (function(modules) { // webpackBootstrap
 					return obj && obj.__esModule ? obj : { default: obj };
 				}
 	
+				// returns the data bag for given element and property name
 				function getPropData(elem, name) {
-					var elemData = (0, _data2.default)(elem, 'props');
-					return elemData[name] || (elemData[name] = {});
+					var elemPropsData = (0, _data2.default)(elem, 'props');
+					return elemPropsData[name] || (elemPropsData[name] = {});
 				}
 	
 				/***/
@@ -2913,6 +2976,13 @@ return /******/ (function(modules) { // webpackBootstrap
 				Object.defineProperty(exports, "__esModule", {
 					value: true
 				});
+	
+				var _typeof = typeof Symbol === "function" && _typeof2(Symbol.iterator) === "symbol" ? function (obj) {
+					return typeof obj === 'undefined' ? 'undefined' : _typeof2(obj);
+				} : function (obj) {
+					return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj === 'undefined' ? 'undefined' : _typeof2(obj);
+				};
+	
 				exports.default = syncPropToAttr;
 	
 				var _data = __webpack_require__(12);
@@ -2948,51 +3018,63 @@ return /******/ (function(modules) { // webpackBootstrap
 							syncAttrValue = (0, _getDefaultValue2.default)(elem, propName, prop);
 						}
 					}
-					if (!(0, _empty2.default)(syncAttrValue) && prop.serialize) {
+					// if (!empty(syncAttrValue) && prop.serialize) {
+					if (!(0, _empty2.default)(syncAttrValue)) {
 						syncAttrValue = prop.serialize(syncAttrValue);
 					}
+					console.log('syncFirstTimeProp', propName, typeof syncAttrValue === 'undefined' ? 'undefined' : _typeof(syncAttrValue), syncAttrValue);
 					if (!(0, _empty2.default)(syncAttrValue)) {
-						propData.syncingAttribute = true;
+						//todo: why we need to flag syncingAttribute?
+						//propData.syncingAttribute = true;
 						elem.setAttribute(attributeName, syncAttrValue);
 					}
+					// else {
+					//   elem.removeAttribute(attributeName);
+					// }
 				}
 	
-				function syncExistingProp(elem, prop, propName, attributeName, propData) {
-					if (attributeName && !propData.settingAttribute) {
-						var internalValue = propData.internalValue;
+				function syncExistingPropToAttr(elem, prop, propName, attributeName, propData) {
+					console.log('syncExistingPropToAttr', propName);
 	
-						var serializedValue = prop.serialize(internalValue);
-						var currentAttrValue = elem.getAttribute(attributeName);
-						var serializedIsEmpty = (0, _empty2.default)(serializedValue);
-						var attributeChanged = !(serializedIsEmpty && (0, _empty2.default)(currentAttrValue) || serializedValue === currentAttrValue);
+					// if (attributeName && !propData.settingAttribute) {
+					var internalValue = propData.internalValue;
 	
-						propData.syncingAttribute = true;
-	
-						var shouldRemoveAttribute = (0, _empty2.default)(propData.lastAssignedValue);
-						if (shouldRemoveAttribute || serializedIsEmpty) {
+					var serializedValue = prop.serialize(internalValue);
+					var currentAttrValue = elem.getAttribute(attributeName);
+					var serializedIsEmpty = (0, _empty2.default)(serializedValue);
+					var attributeChanged = !(serializedIsEmpty && (0, _empty2.default)(currentAttrValue) || serializedValue === currentAttrValue);
+					//todo: why if the lastAssignedValue is empty we remove the attribute?
+					// const shouldRemoveAttribute = empty(propData.lastAssignedValue);
+					// if (shouldRemoveAttribute || serializedIsEmpty) {
+					//   elem.removeAttribute(attributeName);
+					// } else {
+					//   elem.setAttribute(attributeName, serializedValue);
+					// }
+					if (attributeChanged) {
+						if (serializedIsEmpty) {
 							elem.removeAttribute(attributeName);
 						} else {
 							elem.setAttribute(attributeName, serializedValue);
 						}
-	
-						if (!attributeChanged && propData.syncingAttribute) {
-							propData.syncingAttribute = false;
-						}
 					}
 	
-					// Allow the attribute to be linked again.
-					propData.settingAttribute = false;
+					// if (!attributeChanged && propData.syncingAttribute) {
+					//   propData.syncingAttribute = false;
+					// }
+					// }
+	
+					// // Allow the attribute to be linked again.
+					// propData.settingAttribute = false;
 				}
 	
 				function syncPropToAttr(elem, prop, propName, isFirstSync) {
 					var attributeName = (0, _data2.default)(elem, 'propertyLinks')[propName];
-					var propData = (0, _getPropData2.default)(elem, propName);
-	
 					if (attributeName) {
+						var propData = (0, _getPropData2.default)(elem, propName);
 						if (isFirstSync) {
 							syncFirstTimeProp(elem, prop, propName, attributeName, propData);
 						} else {
-							syncExistingProp(elem, prop, propName, attributeName, propData);
+							syncExistingPropToAttr(elem, prop, propName, attributeName, propData);
 						}
 					}
 				}
@@ -3016,6 +3098,7 @@ return /******/ (function(modules) { // webpackBootstrap
 					return obj && obj.__esModule ? obj : { default: obj };
 				}
 	
+				// returns a propertyDescriptor based on the given options object
 				exports.default = function (opts) {
 					opts = (0, _assign2.default)({
 						configurable: true,
@@ -3023,6 +3106,7 @@ return /******/ (function(modules) { // webpackBootstrap
 						writable: !(opts.get || opts.set)
 					}, opts);
 					if ('writable' in opts && (opts.get || opts.set)) {
+						// if get or set is present then writable is not allowed
 						delete opts.writable;
 					}
 					if (opts.override) {
