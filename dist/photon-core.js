@@ -2142,14 +2142,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 				var htmlElementPrototype = HTMLElement ? HTMLElement.prototype : {};
 	
-				// function syncPropsToAttrs (elem) {
-				//   //todo: these are just the original propConfigs
-				//   const props = elem.constructor.props;
-				//   Object.keys(props).forEach((propName) => {
-				//     const prop = props[propName];
-				//     syncPropToAttr(elem, prop, propName, true);
-				//   });
-				// }
+				function syncPropsToAttrs(elem) {
+					//todo: these are just the original propConfigs
+					var props = elem.constructor.props;
+					Object.keys(props).forEach(function (propName) {
+						var prop = props[propName];
+						(0, _syncPropToAttr2.default)(elem, prop, propName, true);
+					});
+				}
 	
 				// Ensures that definitions passed as part of the constructor are functions
 				// that return property definitions used on the element.
@@ -2384,9 +2384,6 @@ return /******/ (function(modules) { // webpackBootstrap
 				Component.renderer = function _renderer(elem) {
 					if (!elem.shadowRoot) {
 						elem.attachShadow({ mode: 'open' });
-	
-						console.log('elem.shadowRoot', _typeof(elem.shadowRoot), elem.shadowRoot);
-						console.log('innerHTML', elem.shadowRoot.innerHTML);
 					}
 					(0, _incrementalDom.patchInner)(elem.shadowRoot, function () {
 						var possibleFn = elem.renderCallback();
@@ -2406,7 +2403,7 @@ return /******/ (function(modules) { // webpackBootstrap
 					// Custom Elements v1
 					connectedCallback: (0, _prop2.default)({
 						value: function value() {
-							//syncPropsToAttrs(this);
+							syncPropsToAttrs(this);
 	
 							this[_symbols.connected] = true;
 							this[_symbols.rendererDebounced]();
@@ -2856,8 +2853,8 @@ return /******/ (function(modules) { // webpackBootstrap
 							if (opts.coerce) {
 								initialValue = opts.coerce(initialValue);
 							}
-							console.log('init prop', name, 'internalValue', typeof initialValue === 'undefined' ? 'undefined' : _typeof(initialValue), initialValue);
-							propData.internalValue = initialValue;
+							console.log('init internalValue prop', name, typeof initialValue === 'undefined' ? 'undefined' : _typeof(initialValue), initialValue);
+							propData.internalValue = propData.oldValue = initialValue;
 						},
 	
 						get: function get() {
@@ -2872,9 +2869,9 @@ return /******/ (function(modules) { // webpackBootstrap
 							propData.lastAssignedValue = newValue;
 							var oldValue = propData.oldValue;
 	
-							if ((0, _empty2.default)(oldValue)) {
-								oldValue = null; //todo: here empty is normalized to null and not to undefined?
-							}
+							// if (empty(oldValue)) {
+							//   oldValue = null;
+							// }
 	
 							if ((0, _empty2.default)(newValue)) {
 								newValue = (0, _getDefaultValue2.default)(this, name, opts);
@@ -2976,13 +2973,6 @@ return /******/ (function(modules) { // webpackBootstrap
 				Object.defineProperty(exports, "__esModule", {
 					value: true
 				});
-	
-				var _typeof = typeof Symbol === "function" && _typeof2(Symbol.iterator) === "symbol" ? function (obj) {
-					return typeof obj === 'undefined' ? 'undefined' : _typeof2(obj);
-				} : function (obj) {
-					return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj === 'undefined' ? 'undefined' : _typeof2(obj);
-				};
-	
 				exports.default = syncPropToAttr;
 	
 				var _data = __webpack_require__(12);
@@ -3009,32 +2999,31 @@ return /******/ (function(modules) { // webpackBootstrap
 					return obj && obj.__esModule ? obj : { default: obj };
 				}
 	
-				function syncFirstTimeProp(elem, prop, propName, attributeName, propData) {
-					var syncAttrValue = propData.lastAssignedValue;
-					if ((0, _empty2.default)(syncAttrValue)) {
-						if ('initial' in prop) {
-							syncAttrValue = (0, _getInitialValue2.default)(elem, propName, prop);
-						} else if ('default' in prop) {
-							syncAttrValue = (0, _getDefaultValue2.default)(elem, propName, prop);
-						}
-					}
-					// if (!empty(syncAttrValue) && prop.serialize) {
-					if (!(0, _empty2.default)(syncAttrValue)) {
-						syncAttrValue = prop.serialize(syncAttrValue);
-					}
-					console.log('syncFirstTimeProp', propName, typeof syncAttrValue === 'undefined' ? 'undefined' : _typeof(syncAttrValue), syncAttrValue);
-					if (!(0, _empty2.default)(syncAttrValue)) {
-						//todo: why we need to flag syncingAttribute?
-						//propData.syncingAttribute = true;
-						elem.setAttribute(attributeName, syncAttrValue);
-					}
-					// else {
-					//   elem.removeAttribute(attributeName);
-					// }
-				}
+				// function syncFirstTimePropToAttr (elem:any, prop:IPropConfig, propName:string, attributeName:string, propData:any) {
+				//   let syncAttrValue:any = propData.lastAssignedValue;
+				//   if (empty(syncAttrValue)) {
+				//     if ('initial' in prop) {
+				//       syncAttrValue = getInitialValue(elem, propName, prop);
+				//     } else if ('default' in prop) {
+				//       syncAttrValue = getDefaultValue(elem, propName, prop);
+				//     }
+				//   }
+				//   // if (!empty(syncAttrValue) && prop.serialize) {
+				//   if (!empty(syncAttrValue)) {
+				//     syncAttrValue = prop.serialize(syncAttrValue);
+				//   }
+				//   console.log('syncFirstTimeProp', propName, typeof syncAttrValue, syncAttrValue);
+				//   if (!empty(syncAttrValue)) {
+				//     //todo: why we need to flag syncingAttribute?
+				//     //propData.syncingAttribute = true;
+				//     elem.setAttribute(attributeName, syncAttrValue);
+				//   }
+				//   // else {
+				//   //   elem.removeAttribute(attributeName);
+				//   // }
+				// }
 	
 				function syncExistingPropToAttr(elem, prop, propName, attributeName, propData) {
-					console.log('syncExistingPropToAttr', propName);
 	
 					// if (attributeName && !propData.settingAttribute) {
 					var internalValue = propData.internalValue;
@@ -3051,11 +3040,14 @@ return /******/ (function(modules) { // webpackBootstrap
 					//   elem.setAttribute(attributeName, serializedValue);
 					// }
 					if (attributeChanged) {
+						console.log('syncExistingPropToAttr', propName, serializedValue, 'was:', currentAttrValue);
 						if (serializedIsEmpty) {
 							elem.removeAttribute(attributeName);
 						} else {
 							elem.setAttribute(attributeName, serializedValue);
 						}
+					} else {
+						console.log('syncExistingPropToAttr ALREADY the same', propName);
 					}
 	
 					// if (!attributeChanged && propData.syncingAttribute) {
@@ -3071,11 +3063,11 @@ return /******/ (function(modules) { // webpackBootstrap
 					var attributeName = (0, _data2.default)(elem, 'propertyLinks')[propName];
 					if (attributeName) {
 						var propData = (0, _getPropData2.default)(elem, propName);
-						if (isFirstSync) {
-							syncFirstTimeProp(elem, prop, propName, attributeName, propData);
-						} else {
-							syncExistingPropToAttr(elem, prop, propName, attributeName, propData);
-						}
+						// if (isFirstSync) {
+						//   syncFirstTimePropToAttr(elem, prop, propName, attributeName, propData);
+						// } else {
+						syncExistingPropToAttr(elem, prop, propName, attributeName, propData);
+						// }
 					}
 				}
 	
